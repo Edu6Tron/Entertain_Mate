@@ -10,6 +10,7 @@ import {
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { findTmdbMatch } from "./tmdb";
+import { findOmdbImdbRating } from "./omdb";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -269,6 +270,7 @@ export async function importExtensionQueries(userId: number, rawQueries: string[
       continue;
     }
 
+    const imdbRating = await findOmdbImdbRating(match.title, match.releaseYear);
     await db.insert(watchlistEntries).values({
       userId,
       title: match.title,
@@ -277,6 +279,7 @@ export async function importExtensionQueries(userId: number, rawQueries: string[
       monthYear: new Date().toISOString().slice(0, 7),
       tmdbId: match.tmdbId,
       posterUrl: match.posterUrl,
+      imdbRating,
       releaseYear: match.releaseYear,
       genres: match.genres.join(" | ") || null,
       sourceQuery: query,
@@ -308,11 +311,13 @@ export async function enrichWatchlistEntries(userId: number) {
       unmatched += 1;
       continue;
     }
+    const imdbRating = await findOmdbImdbRating(match.title, match.releaseYear);
     await db
       .update(watchlistEntries)
       .set({
         tmdbId: match.tmdbId,
         posterUrl: match.posterUrl,
+        imdbRating,
         releaseYear: match.releaseYear,
         genres: match.genres.join(" | ") || null,
         mediaType: match.mediaType,
@@ -322,6 +327,34 @@ export async function enrichWatchlistEntries(userId: number) {
     enriched += 1;
   }
   return { examined: entries.length, enriched, unmatched };
+}
+
+export async function enrichImdbRatings(userId: number) {
+  if (!process.env.OMDB_API_KEY) return { available: false as const, examined: 0, enriched: 0, unmatched: 0 };
+
+  const db = getDb();
+  if (!db) throw new Error("Database is not available");
+  const entries = await db
+    .select({ id: watchlistEntries.id, title: watchlistEntries.title, releaseYear: watchlistEntries.releaseYear })
+    .from(watchlistEntries)
+    .where(and(eq(watchlistEntries.userId, userId), isNull(watchlistEntries.imdbRating)))
+    .limit(50);
+
+  let enriched = 0;
+  let unmatched = 0;
+  for (const entry of entries) {
+    const imdbRating = await findOmdbImdbRating(entry.title, entry.releaseYear);
+    if (!imdbRating) {
+      unmatched += 1;
+      continue;
+    }
+    await db
+      .update(watchlistEntries)
+      .set({ imdbRating })
+      .where(and(eq(watchlistEntries.id, entry.id), eq(watchlistEntries.userId, userId)));
+    enriched += 1;
+  }
+  return { available: true as const, examined: entries.length, enriched, unmatched };
 }
 
 export { HISTORICAL_ENTRIES };

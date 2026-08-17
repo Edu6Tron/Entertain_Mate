@@ -46,3 +46,4 @@
 - [x] Publish the standalone HTML companion source to the private Entertain_Mate GitHub repository and provide a direct page link.
 - [x] Enable public GitHub Pages only for the data-free standalone HTML companion after the user's explicit confirmation.
 - [x] Add protected import-endpoint tests and TMDb fallback coverage before closing the remaining automated-import validation work.
+- [x] Prepare an OMDb rating-enrichment path that performs no external rating request and displays no rating until a validated server-side key exists.

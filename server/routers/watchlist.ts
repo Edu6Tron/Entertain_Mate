@@ -4,6 +4,7 @@ import {
   createWatchlistEntry,
   deleteWatchlistEntry,
   enrichWatchlistEntries,
+  enrichImdbRatings,
   listWatchlistEntries,
   MEDIA_TYPES,
   revokeExtensionToken,
@@ -68,6 +69,8 @@ export const watchlistRouter = router({
     .mutation(({ ctx, input }) => revokeExtensionToken(ctx.user.id, input.tokenHint)),
 
   enrich: protectedProcedure.mutation(({ ctx }) => enrichWatchlistEntries(ctx.user.id)),
+
+  enrichRatings: protectedProcedure.mutation(({ ctx }) => enrichImdbRatings(ctx.user.id)),
 });
 
 export const watchlistValidation = { createInput, updateInput };
