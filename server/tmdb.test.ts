@@ -39,6 +39,13 @@ describe("TMDb title matching", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("returns a safe null fallback when TMDb finds no movie or television result", async () => {
+    process.env.TMDB_API_KEY = "test-key";
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ results: [{ id: 9, media_type: "person", name: "An Actor" }] }) }));
+
+    await expect(findTmdbMatch("An Actor")).resolves.toBeNull();
+  });
+
   it("classifies a matched short movie by its source-provided runtime", async () => {
     process.env.TMDB_API_KEY = "test-key";
     vi.stubGlobal("fetch", vi.fn()

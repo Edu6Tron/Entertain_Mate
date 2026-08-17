@@ -20,7 +20,7 @@
 - [x] Build a poster-deck gallery, checkboxes, and month/year/category filters for enriched entries.
 - [x] Preserve per-user privacy for imported searches and enriched records through authenticated access controls.
 - [x] Create or connect the requested private GitHub repository and synchronize the project source without publishing sensitive user data.
-- [ ] Test automated imports, enrichment fallbacks, privacy boundaries, and repository synchronization before the next delivery checkpoint.
+- [x] Test automated imports, enrichment fallbacks, privacy boundaries, and repository synchronization before the next delivery checkpoint.
 - [x] Replace Google-account activity access with a local browser-extension import flow that never requires a Google sign-in.
 - [x] Limit the browser extension to explicit history access, local entertainment-query detection, and user-controlled sync; exclude Gmail, Drive, passwords, cookies, and unrelated browser data.
 - [x] Add a visible consent screen, import preview, and local clear/revoke controls before any history-derived item is sent to the dashboard.
@@ -43,5 +43,6 @@
 - [x] Define a standalone HTML privacy boundary that excludes OAuth sessions, imported search history, database records, and server credentials.
 - [x] Build a responsive single-file Entertain_Mate HTML companion with multiple theme modes, local watchlist persistence, title filters, status controls, and add/edit/delete interactions.
 - [x] Verify the standalone HTML page opens directly, retains its selected theme and local entries, and remains usable at mobile and desktop widths.
-- [ ] Publish the standalone HTML companion source to the private Entertain_Mate GitHub repository and provide a direct page link.
-- [ ] Enable public GitHub Pages only for the data-free standalone HTML companion after the user's explicit confirmation.
+- [x] Publish the standalone HTML companion source to the private Entertain_Mate GitHub repository and provide a direct page link.
+- [x] Enable public GitHub Pages only for the data-free standalone HTML companion after the user's explicit confirmation.
+- [x] Add protected import-endpoint tests and TMDb fallback coverage before closing the remaining automated-import validation work.
