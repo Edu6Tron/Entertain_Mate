@@ -11,6 +11,7 @@ type TmdbSearchResult = {
 };
 
 type TmdbSearchResponse = { results?: TmdbSearchResult[] };
+type TmdbDetailsResponse = { genres?: Array<{ name?: string }>; runtime?: number | null };
 
 export type TmdbMatch = {
   tmdbId: number;
@@ -18,6 +19,7 @@ export type TmdbMatch = {
   mediaType: MediaType;
   releaseYear: string | null;
   posterUrl: string | null;
+  genres: string[];
 };
 
 export async function findTmdbMatch(query: string): Promise<TmdbMatch | null> {
@@ -40,11 +42,19 @@ export async function findTmdbMatch(query: string): Promise<TmdbMatch | null> {
   if (!title) return null;
 
   const date = match.release_date ?? match.first_air_date ?? "";
+  const detailEndpoint = new URL(`https://api.themoviedb.org/3/${match.media_type}/${match.id}`);
+  detailEndpoint.searchParams.set("api_key", apiKey);
+  const detailResponse = await fetch(detailEndpoint, { headers: { accept: "application/json" } });
+  const details = detailResponse.ok ? await detailResponse.json() as TmdbDetailsResponse : {};
+
+  const mediaType: MediaType = match.media_type === "tv" ? MEDIA_TYPES[1] : details.runtime !== null && details.runtime !== undefined && details.runtime <= 45 ? MEDIA_TYPES[2] : MEDIA_TYPES[0];
+
   return {
     tmdbId: match.id,
     title,
-    mediaType: match.media_type === "tv" ? MEDIA_TYPES[1] : MEDIA_TYPES[0],
+    mediaType,
     releaseYear: /^\d{4}/.test(date) ? date.slice(0, 4) : null,
     posterUrl: match.poster_path ? `https://image.tmdb.org/t/p/w500${match.poster_path}` : null,
+    genres: (details.genres ?? []).map(genre => genre.name?.trim()).filter((genre): genre is string => Boolean(genre)),
   };
 }

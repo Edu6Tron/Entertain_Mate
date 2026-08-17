@@ -30,6 +30,7 @@ export const watchlistEntries = mysqlTable(
     posterUrl: text("posterUrl"),
     imdbRating: decimal("imdbRating", { precision: 3, scale: 1 }),
     releaseYear: varchar("releaseYear", { length: 4 }),
+    genres: text("genres"),
     sourceQuery: varchar("sourceQuery", { length: 255 }),
     sourceKind: varchar("sourceKind", { length: 64 }),
     moctaleUrl: varchar("moctaleUrl", { length: 512 }),

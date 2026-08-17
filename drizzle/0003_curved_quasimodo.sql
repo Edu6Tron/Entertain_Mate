@@ -1,0 +1,1 @@
+ALTER TABLE `watchlistEntries` ADD `genres` text;

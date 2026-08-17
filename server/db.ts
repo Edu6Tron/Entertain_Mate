@@ -278,6 +278,7 @@ export async function importExtensionQueries(userId: number, rawQueries: string[
       tmdbId: match.tmdbId,
       posterUrl: match.posterUrl,
       releaseYear: match.releaseYear,
+      genres: match.genres.join(" | ") || null,
       sourceQuery: query,
       sourceKind: "Brave search import",
       moctaleUrl: "https://www.moctale.in/",
@@ -313,6 +314,7 @@ export async function enrichWatchlistEntries(userId: number) {
         tmdbId: match.tmdbId,
         posterUrl: match.posterUrl,
         releaseYear: match.releaseYear,
+        genres: match.genres.join(" | ") || null,
         mediaType: match.mediaType,
         sourceKind: "TMDb enrichment",
       })

@@ -8,10 +8,12 @@
       <form id="settings-form">
         <label>Dashboard URL<input id="dashboard-url" type="url" placeholder="https://your-app.manus.space" required /></label>
         <label>Private connection token<textarea id="token" rows="3" placeholder="Generate this inside Entertain_Mate" required></textarea></label>
-        <label class="toggle"><input id="live-capture" type="checkbox" checked /> Capture new Google searches automatically</label>
+        <label class="toggle"><input id="live-capture" type="checkbox" /> Automatically sync future *eligible* searches after this explicit consent</label>
         <button type="submit">Save private connection</button>
       </form>
-      <section class="backfill"><h2>One-time local-history backfill</h2><p>Searches are read locally and then grouped into private batches of likely title queries for automatic matching.</p><div><button data-days="30">Last 30 days</button><button data-days="365">Last year</button><button data-days="0">All available history</button></div></section>
+      <section class="backfill"><h2>One-time local-history backfill</h2><p>Searches are read locally and shown here before any item is sent for matching.</p><div><button data-days="30">Last 30 days</button><button data-days="365">Last year</button><button data-days="0">All available history</button></div></section>
+      <section class="preview"><div class="preview-heading"><h2>Review queued candidates</h2><button id="refresh-preview" class="text-button">Refresh</button></div><p id="preview-help">No local candidates queued.</p><div id="preview-list" class="preview-list"></div><div class="preview-actions"><button id="sync-preview">Sync selected</button><button id="clear-preview" class="muted-button">Clear local queue</button></div></section>
+      <button id="disconnect" class="disconnect">Disconnect and clear local data</button>
       <p id="status" role="status"></p>
     </main><script src="popup.js"></script>
   </body>

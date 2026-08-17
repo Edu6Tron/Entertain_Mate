@@ -1,6 +1,7 @@
 import { isLikelyEntertainmentQuery } from "./query-filter.js";
 
 const SETTINGS_KEY = "settings";
+const PENDING_KEY = "pendingQueries";
 
 function queryFromGoogleUrl(rawUrl) {
   try {
@@ -31,11 +32,21 @@ async function syncQueries(queries) {
   return result;
 }
 
+async function queueQueries(queries) {
+  const eligibleQueries = queries.filter(isLikelyEntertainmentQuery);
+  const { [PENDING_KEY]: pending = [] } = await chrome.storage.local.get(PENDING_KEY);
+  const next = Array.from(new Set([...pending, ...eligibleQueries])).slice(-200);
+  await chrome.storage.local.set({ [PENDING_KEY]: next });
+  return { added: Math.max(0, next.length - pending.length), pending: next };
+}
+
 chrome.history.onVisited.addListener(async item => {
   const query = queryFromGoogleUrl(item.url);
   if (!query) return;
   try {
-    await syncQueries([query]);
+    const { [SETTINGS_KEY]: settings } = await chrome.storage.local.get(SETTINGS_KEY);
+    if (settings?.liveCapture) await syncQueries([query]);
+    else await queueQueries([query]);
   } catch (error) {
     console.warn("Entertain_Mate live import skipped", error);
   }
@@ -46,12 +57,37 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   (async () => {
     const startTime = message.days ? Date.now() - message.days * 24 * 60 * 60 * 1000 : 0;
     const items = await chrome.history.search({ text: "", startTime, maxResults: 5000 });
-    const queries = [...new Set(items.map(item => queryFromGoogleUrl(item.url)).filter(Boolean))];
-    const batches = [];
-    for (let index = 0; index < queries.length; index += 50) batches.push(queries.slice(index, index + 50));
-    const results = [];
-    for (const batch of batches) results.push(await syncQueries(batch));
-    sendResponse({ ok: true, found: queries.length, batches: batches.length, results });
+    const queries = Array.from(new Set(items.map(item => queryFromGoogleUrl(item.url)).filter(Boolean)));
+    const queued = await queueQueries(queries);
+    sendResponse({ ok: true, found: queries.length, ...queued });
   })().catch(error => sendResponse({ ok: false, error: error.message }));
   return true;
+});
+
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message.type === "preview") {
+    chrome.storage.local.get(PENDING_KEY).then(({ [PENDING_KEY]: pending = [] }) => sendResponse({ ok: true, pending })).catch(error => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+  if (message.type === "syncPending") {
+    (async () => {
+      const { [PENDING_KEY]: pending = [] } = await chrome.storage.local.get(PENDING_KEY);
+      const selected = Array.isArray(message.queries) ? pending.filter(query => message.queries.includes(query)) : pending;
+      const batches = [];
+      for (let index = 0; index < selected.length; index += 50) batches.push(selected.slice(index, index + 50));
+      const results = [];
+      for (const batch of batches) results.push(await syncQueries(batch));
+      await chrome.storage.local.set({ [PENDING_KEY]: pending.filter(query => !selected.includes(query)) });
+      sendResponse({ ok: true, sent: selected.length, results });
+    })().catch(error => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+  if (message.type === "clearPending") {
+    chrome.storage.local.remove(PENDING_KEY).then(() => sendResponse({ ok: true }));
+    return true;
+  }
+  if (message.type === "disconnect") {
+    chrome.storage.local.remove([SETTINGS_KEY, PENDING_KEY, "lastSync"]).then(() => sendResponse({ ok: true }));
+    return true;
+  }
 });
