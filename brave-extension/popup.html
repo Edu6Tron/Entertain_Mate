@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+  <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Entertain_Mate</title><link rel="stylesheet" href="popup.css" /></head>
+  <body>
+    <main>
+      <p class="eyebrow">Private Brave companion</p><h1>Entertain_Mate</h1>
+      <p class="intro">Only Google search queries that are submitted for automatic title matching are sent to your dashboard. Gmail, passwords, cookies, and page contents are never accessed.</p>
+      <form id="settings-form">
+        <label>Dashboard URL<input id="dashboard-url" type="url" placeholder="https://your-app.manus.space" required /></label>
+        <label>Private connection token<textarea id="token" rows="3" placeholder="Generate this inside Entertain_Mate" required></textarea></label>
+        <label class="toggle"><input id="live-capture" type="checkbox" checked /> Capture new Google searches automatically</label>
+        <button type="submit">Save private connection</button>
+      </form>
+      <section class="backfill"><h2>One-time local-history backfill</h2><p>Searches are read locally and then grouped into private batches of likely title queries for automatic matching.</p><div><button data-days="30">Last 30 days</button><button data-days="365">Last year</button><button data-days="0">All available history</button></div></section>
+      <p id="status" role="status"></p>
+    </main><script src="popup.js"></script>
+  </body>
+</html>

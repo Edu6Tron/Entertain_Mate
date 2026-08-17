@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "Entertain_Mate Private Import",
+  "version": "1.0.0",
+  "description": "Privately import entertainment searches from Brave into Entertain_Mate.",
+  "permissions": ["history", "storage"],
+  "host_permissions": ["https://*.manus.computer/*", "https://*.manus.space/*"],
+  "background": { "service_worker": "service-worker.js", "type": "module" },
+  "action": { "default_title": "Entertain_Mate", "default_popup": "popup.html" }
+}

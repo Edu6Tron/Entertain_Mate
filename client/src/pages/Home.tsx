@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
-import { CalendarDays, Check, ChevronRight, CircleDot, Clapperboard, Edit3, Film, FilterX, Loader2, Plus, Search, Trash2 } from "lucide-react";
+import { CalendarDays, Check, ChevronRight, CircleDot, Clapperboard, Copy, Edit3, Film, FilterX, ImagePlus, Loader2, Plus, Search, ShieldCheck, Star, Trash2 } from "lucide-react";
 import { FormEvent, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -25,6 +25,11 @@ type WatchlistEntry = {
   watchStatus: WatchStatus;
   monthYear: string | null;
   notes: string | null;
+  posterUrl: string | null;
+  imdbRating: string | null;
+  releaseYear: string | null;
+  sourceKind: string | null;
+  moctaleUrl: string | null;
 };
 
 const statusStyles: Record<WatchStatus, string> = {
@@ -45,7 +50,9 @@ function sortGroups([a]: [string, WatchlistEntry[]], [b]: [string, WatchlistEntr
   return b.localeCompare(a);
 }
 
-function EntryForm({ initial, onSubmit, isSaving }: { initial?: WatchlistEntry; onSubmit: (entry: Omit<WatchlistEntry, "id" | "monthYear"> & { monthYear: string }) => void; isSaving: boolean }) {
+type WatchlistFormInput = Pick<WatchlistEntry, "title" | "mediaType" | "watchStatus" | "notes"> & { monthYear: string };
+
+function EntryForm({ initial, onSubmit, isSaving }: { initial?: WatchlistEntry; onSubmit: (entry: WatchlistFormInput) => void; isSaving: boolean }) {
   const [title, setTitle] = useState(initial?.title ?? "");
   const [mediaType, setMediaType] = useState<MediaType>(initial?.mediaType ?? "Movie");
   const [watchStatus, setWatchStatus] = useState<WatchStatus>(initial?.watchStatus ?? "Want to Watch");
@@ -80,12 +87,16 @@ function CollectionDashboard() {
   const [typeFilter, setTypeFilter] = useState<MediaType | "all">("all");
   const [statusFilter, setStatusFilter] = useState<WatchStatus | "all">("all");
   const [showAdd, setShowAdd] = useState(false);
+  const [showExtension, setShowExtension] = useState(false);
+  const [extensionToken, setExtensionToken] = useState<{ token: string; tokenHint: string } | null>(null);
   const [editing, setEditing] = useState<WatchlistEntry | null>(null);
   const [deleting, setDeleting] = useState<WatchlistEntry | null>(null);
 
   const createEntry = trpc.watchlist.create.useMutation({ onSuccess: async () => { await utils.watchlist.list.invalidate(); setShowAdd(false); toast.success("Title added to your collection"); }, onError: error => toast.error(error.message) });
   const updateEntry = trpc.watchlist.update.useMutation({ onSuccess: async () => { await utils.watchlist.list.invalidate(); setEditing(null); toast.success("Collection updated"); }, onError: error => toast.error(error.message) });
   const deleteEntry = trpc.watchlist.delete.useMutation({ onSuccess: async () => { await utils.watchlist.list.invalidate(); setDeleting(null); toast.success("Title removed from your collection"); }, onError: error => toast.error(error.message) });
+  const createExtensionToken = trpc.watchlist.createExtensionToken.useMutation({ onSuccess: data => { setExtensionToken(data); toast.success("Private Brave token generated"); }, onError: error => toast.error(error.message) });
+  const enrichEntries = trpc.watchlist.enrich.useMutation({ onSuccess: async result => { await utils.watchlist.list.invalidate(); toast.success(`${result.enriched} titles enriched with artwork`); }, onError: error => toast.error(error.message) });
 
   const filteredEntries = useMemo(() => entries.filter(entry => {
     const query = searchQuery.trim().toLowerCase();
@@ -126,7 +137,7 @@ function CollectionDashboard() {
             <h1 className="font-display mt-3 text-5xl leading-[0.95] tracking-[-0.04em] text-[#1d2927] md:text-6xl">The watchlist.</h1>
             <p className="mt-4 max-w-xl text-[15px] leading-7 text-[#68736e]">A quiet place for every film, series, and short that has stayed on your mind.</p>
           </div>
-          <Button onClick={() => setShowAdd(true)} className="h-12 shrink-0 rounded-full bg-[#1d2927] px-5 text-sm font-semibold text-[#fbf7ee] shadow-[0_10px_24px_rgba(31,42,39,0.15)] hover:bg-[#34443f]"><Plus className="mr-1.5 h-4 w-4" /> Add a title</Button>
+          <div className="flex flex-wrap gap-3"><Button variant="outline" onClick={() => setShowExtension(true)} className="h-12 rounded-full border-[#cfd8ce] bg-[#fbfaf7] px-5 text-sm font-semibold text-[#41534b] hover:bg-[#edf2ea]"><ShieldCheck className="mr-1.5 h-4 w-4" /> Connect Brave</Button><Button variant="outline" onClick={() => enrichEntries.mutate()} disabled={enrichEntries.isPending} className="h-12 rounded-full border-[#cfd8ce] bg-[#fbfaf7] px-5 text-sm font-semibold text-[#41534b] hover:bg-[#edf2ea]">{enrichEntries.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <ImagePlus className="mr-1.5 h-4 w-4" />} Add posters</Button><Button onClick={() => setShowAdd(true)} className="h-12 shrink-0 rounded-full bg-[#1d2927] px-5 text-sm font-semibold text-[#fbf7ee] shadow-[0_10px_24px_rgba(31,42,39,0.15)] hover:bg-[#34443f]"><Plus className="mr-1.5 h-4 w-4" /> Add a title</Button></div>
         </section>
 
         <section className="mt-8 grid gap-3 sm:grid-cols-3">
@@ -156,7 +167,7 @@ function CollectionDashboard() {
             <div className="mb-4 flex items-center gap-3"><h3 className="font-display text-3xl text-[#273530]">{group === "archive" ? "Archive" : labelForMonth(group)}</h3><span className="rounded-full bg-[#e8eee5] px-2.5 py-1 text-[11px] font-bold text-[#66776e]">{groupEntries.length}</span><span className="h-px flex-1 bg-[#e3e0d9]" /></div>
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{groupEntries.map(entry => <article key={entry.id} className="entry-card group relative rounded-2xl border border-[#e0e1d9] bg-[#fbfaf7] p-5 transition-all hover:-translate-y-0.5 hover:border-[#ced7cd] hover:shadow-[0_10px_24px_rgba(49,67,60,0.07)]">
               <div className="flex items-start justify-between gap-3"><Badge variant="outline" className="rounded-full border-[#d9dfd6] bg-[#f6f7f3] px-2.5 py-1 text-[10px] font-bold tracking-wide text-[#69766f]">{entry.mediaType}</Badge><div className="flex opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100"><Button variant="ghost" size="icon" onClick={() => setEditing(entry)} className="h-8 w-8 text-[#5e6b64] hover:bg-[#edf0e9]"><Edit3 className="h-3.5 w-3.5" /><span className="sr-only">Edit {entry.title}</span></Button><Button variant="ghost" size="icon" onClick={() => setDeleting(entry)} className="h-8 w-8 text-[#9a6355] hover:bg-[#f7eae5]"><Trash2 className="h-3.5 w-3.5" /><span className="sr-only">Delete {entry.title}</span></Button></div></div>
-              <h4 className="font-display mt-5 text-[26px] leading-[1.05] text-[#25322f]">{entry.title}</h4>
+              <div className="mt-5 flex gap-3"><div className="h-20 w-14 shrink-0 overflow-hidden rounded-lg bg-[#e8ebe5]">{entry.posterUrl ? <img src={entry.posterUrl} alt={`Poster for ${entry.title}`} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center"><Film className="h-4 w-4 text-[#9ba69e]" /></div>}</div><div className="min-w-0"><h4 className="font-display text-[26px] leading-[1.05] text-[#25322f]">{entry.title}</h4>{(entry.releaseYear || entry.imdbRating) && <p className="mt-2 flex items-center gap-2 text-[11px] font-medium text-[#718078]">{entry.releaseYear && <span>{entry.releaseYear}</span>}{entry.imdbRating && <span className="flex items-center gap-1 text-[#9b6739]"><Star className="h-3 w-3 fill-current" /> IMDb {entry.imdbRating}</span>}</p>}{entry.sourceKind && <span className="mt-2 inline-flex rounded-full bg-[#edf1ea] px-2 py-0.5 text-[9px] font-bold tracking-wide text-[#66776e]">Imported privately</span>}</div></div>
               <Textarea key={`${entry.id}-${entry.notes ?? ""}`} defaultValue={entry.notes ?? ""} onBlur={event => { const notes = event.currentTarget.value.trim() || null; if (notes !== entry.notes) updateEntry.mutate({ id: entry.id, notes }); }} placeholder="Add a note…" className="mt-3 h-10 min-h-10 resize-none border-0 bg-transparent p-0 text-xs leading-5 text-[#77827d] placeholder:text-[#a0a8a1] focus-visible:ring-0" />
               <div className="mt-5 flex items-center justify-between gap-3 border-t border-[#eceae5] pt-4"><Select value={entry.watchStatus} onValueChange={value => inlineUpdate(entry, { watchStatus: value as WatchStatus })}><SelectTrigger className={cn("h-8 w-auto gap-1.5 rounded-full border px-2.5 text-[10px] font-bold shadow-none", statusStyles[entry.watchStatus])}><SelectValue /></SelectTrigger><SelectContent>{watchStatuses.map(status => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select><Select value={entry.mediaType} onValueChange={value => inlineUpdate(entry, { mediaType: value as MediaType })}><SelectTrigger className="h-8 w-8 border-0 p-0 text-[#a0a8a1] shadow-none focus:ring-0"><ChevronRight className="h-4 w-4" /><span className="sr-only">Change type</span></SelectTrigger><SelectContent>{mediaTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent></Select></div>
             </article>)}</div>
@@ -166,6 +177,7 @@ function CollectionDashboard() {
       </div>
 
       <Dialog open={showAdd} onOpenChange={setShowAdd}><DialogContent className="max-h-[92vh] overflow-y-auto rounded-3xl border-[#e2e2dc] bg-[#fcfbf8] p-6 sm:max-w-lg sm:p-8"><DialogHeader><p className="eyebrow">A new discovery</p><DialogTitle className="font-display mt-1 text-3xl text-[#26342f]">Add to your list</DialogTitle><DialogDescription>Save the next story you want to make time for.</DialogDescription></DialogHeader><EntryForm isSaving={createEntry.isPending} onSubmit={entry => createEntry.mutate(entry)} /></DialogContent></Dialog>
+      <Dialog open={showExtension} onOpenChange={setShowExtension}><DialogContent className="max-h-[92vh] overflow-y-auto rounded-3xl border-[#e2e2dc] bg-[#fcfbf8] p-6 sm:max-w-lg sm:p-8"><DialogHeader><p className="eyebrow">Private Brave companion</p><DialogTitle className="font-display mt-1 text-3xl text-[#26342f]">Connect your browser</DialogTitle><DialogDescription>The extension reads local Google-search history only after you approve Brave's history permission. It never accesses Gmail, Drive, cookies, saved passwords, or page content.</DialogDescription></DialogHeader><div className="mt-4 rounded-2xl border border-[#dce4d9] bg-[#f3f7f0] p-4 text-xs leading-5 text-[#5c6d65]"><strong className="block text-[#32433d]">What is shared</strong>Only likely entertainment search terms are sent for title matching. A title is saved only when a movie or television match is found.</div>{extensionToken ? <div className="mt-5 space-y-3"><Label>Dashboard address</Label><code className="block overflow-x-auto rounded-xl bg-[#eceee9] p-3 text-xs text-[#35433e]">{window.location.origin}</code><Label>Private connection token</Label><code className="block break-all rounded-xl bg-[#eceee9] p-3 text-xs text-[#35433e]">{extensionToken.token}</code><Button variant="outline" onClick={() => { navigator.clipboard.writeText(extensionToken.token); toast.success("Token copied"); }} className="w-full rounded-full border-[#cfd8ce]"><Copy className="mr-1.5 h-4 w-4" /> Copy token</Button><p className="text-xs leading-5 text-[#819088]">Paste both values into the private Brave extension popup. Keep the token private; you can revoke it by generating a replacement in a later update.</p></div> : <Button onClick={() => createExtensionToken.mutate()} disabled={createExtensionToken.isPending} className="mt-5 h-11 w-full rounded-full bg-[#1e2a28] text-[#fffaf2]">{createExtensionToken.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Generate private Brave token"}</Button>}</DialogContent></Dialog>
       <Dialog open={Boolean(editing)} onOpenChange={open => !open && setEditing(null)}>{editing && <DialogContent className="max-h-[92vh] overflow-y-auto rounded-3xl border-[#e2e2dc] bg-[#fcfbf8] p-6 sm:max-w-lg sm:p-8"><DialogHeader><p className="eyebrow">Refine your entry</p><DialogTitle className="font-display mt-1 text-3xl text-[#26342f]">Edit title</DialogTitle><DialogDescription>Keep the details meaningful and current.</DialogDescription></DialogHeader><EntryForm initial={editing} isSaving={updateEntry.isPending} onSubmit={entry => updateEntry.mutate({ id: editing.id, ...entry })} /></DialogContent>}</Dialog>
       <AlertDialog open={Boolean(deleting)} onOpenChange={open => !open && setDeleting(null)}><AlertDialogContent className="rounded-3xl border-[#e2e2dc] bg-[#fcfbf8]"><AlertDialogHeader><AlertDialogTitle className="font-display text-3xl text-[#26342f]">Remove this title?</AlertDialogTitle><AlertDialogDescription>{deleting ? `“${deleting.title}” will be removed from your private collection. This cannot be undone.` : ""}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel className="rounded-full border-[#d8ddd5]">Keep it</AlertDialogCancel><AlertDialogAction onClick={() => deleting && deleteEntry.mutate({ id: deleting.id })} className="rounded-full bg-[#8b4f42] text-white hover:bg-[#754135]">Remove title</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
     </main>

@@ -3,8 +3,10 @@ import type { TrpcContext } from "../_core/context";
 
 const mocks = vi.hoisted(() => ({
   create: vi.fn(),
+  createExtensionToken: vi.fn(),
   delete: vi.fn(),
   list: vi.fn(),
+  revokeExtensionToken: vi.fn(),
   update: vi.fn(),
 }));
 
@@ -12,8 +14,10 @@ vi.mock("../db", () => ({
   MEDIA_TYPES: ["Movie", "Web Series", "Short Film"],
   WATCH_STATUSES: ["Want to Watch", "Watching", "Watched"],
   createWatchlistEntry: mocks.create,
+  createExtensionToken: mocks.createExtensionToken,
   deleteWatchlistEntry: mocks.delete,
   listWatchlistEntries: mocks.list,
+  revokeExtensionToken: mocks.revokeExtensionToken,
   updateWatchlistEntry: mocks.update,
 }));
 
@@ -71,8 +75,10 @@ describe("watchlist validation", () => {
 describe("watchlist protected operations", () => {
   it("sends every create, update, and delete through the signed-in user's id", async () => {
     mocks.create.mockResolvedValue({ success: true });
+    mocks.createExtensionToken.mockResolvedValue({ token: "private-token", tokenHint: "private-1" });
     mocks.update.mockResolvedValue({ success: true });
     mocks.delete.mockResolvedValue({ success: true });
+    mocks.revokeExtensionToken.mockResolvedValue({ success: true });
     const firstOwner = appRouter.createCaller(contextFor(41));
     const otherOwner = appRouter.createCaller(contextFor(72));
 
@@ -85,11 +91,15 @@ describe("watchlist protected operations", () => {
     });
     await firstOwner.watchlist.update({ id: 88, watchStatus: "Watched" });
     await firstOwner.watchlist.update({ id: 88, notes: "A private reminder" });
+    await firstOwner.watchlist.createExtensionToken();
     await otherOwner.watchlist.delete({ id: 88 });
+    await otherOwner.watchlist.revokeExtensionToken({ tokenHint: "private-1" });
 
     expect(mocks.create).toHaveBeenCalledWith(41, expect.objectContaining({ title: "Private title" }));
     expect(mocks.update).toHaveBeenCalledWith(41, 88, { watchStatus: "Watched" });
     expect(mocks.update).toHaveBeenCalledWith(41, 88, { notes: "A private reminder" });
     expect(mocks.delete).toHaveBeenCalledWith(72, 88);
+    expect(mocks.createExtensionToken).toHaveBeenCalledWith(41);
+    expect(mocks.revokeExtensionToken).toHaveBeenCalledWith(72, "private-1");
   });
 });

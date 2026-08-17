@@ -1,12 +1,15 @@
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, isNull } from "drizzle-orm";
+import { createHash, randomBytes } from "crypto";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   InsertUser,
   users,
   watchlistEntries,
+  watchlistExtensionTokens,
   watchlistSeedStates,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
+import { findTmdbMatch } from "./tmdb";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -31,6 +34,8 @@ export type UpdateWatchlistEntryInput = {
   monthYear?: string;
   notes?: string | null;
 };
+
+const hashExtensionToken = (token: string) => createHash("sha256").update(token).digest("hex");
 
 const HISTORICAL_ENTRIES: Array<{
   title: string;
@@ -193,6 +198,128 @@ export async function deleteWatchlistEntry(userId: number, entryId: number) {
     .where(and(eq(watchlistEntries.id, entryId), eq(watchlistEntries.userId, userId)));
 
   return { success: result[0].affectedRows > 0 };
+}
+
+export async function createExtensionToken(userId: number) {
+  const db = getDb();
+  if (!db) throw new Error("Database is not available");
+
+  const token = randomBytes(32).toString("base64url");
+  await db.insert(watchlistExtensionTokens).values({
+    userId,
+    tokenHash: hashExtensionToken(token),
+    tokenHint: token.slice(-8),
+    browser: "Brave",
+  });
+  return { token, tokenHint: token.slice(-8) };
+}
+
+export async function revokeExtensionToken(userId: number, tokenHint: string) {
+  const db = getDb();
+  if (!db) throw new Error("Database is not available");
+
+  await db
+    .update(watchlistExtensionTokens)
+    .set({ revokedAt: new Date() })
+    .where(and(eq(watchlistExtensionTokens.userId, userId), eq(watchlistExtensionTokens.tokenHint, tokenHint)));
+  return { success: true as const };
+}
+
+export async function getExtensionTokenOwner(token: string) {
+  const db = getDb();
+  if (!db) throw new Error("Database is not available");
+
+  const tokenHash = hashExtensionToken(token);
+  const result = await db
+    .select({ id: watchlistExtensionTokens.id, userId: watchlistExtensionTokens.userId })
+    .from(watchlistExtensionTokens)
+    .where(and(eq(watchlistExtensionTokens.tokenHash, tokenHash), isNull(watchlistExtensionTokens.revokedAt)))
+    .limit(1);
+
+  const record = result[0];
+  if (!record) return null;
+  await db.update(watchlistExtensionTokens).set({ lastUsedAt: new Date() }).where(eq(watchlistExtensionTokens.id, record.id));
+  return record.userId;
+}
+
+export async function importExtensionQueries(userId: number, rawQueries: string[]) {
+  const db = getDb();
+  if (!db) throw new Error("Database is not available");
+
+  await ensureHistoricalEntries(userId);
+  const queries = Array.from(new Set(rawQueries.map(query => query.trim()).filter(query => query.length >= 2 && query.length <= 255))).slice(0, 50);
+  let imported = 0;
+  let skipped = 0;
+  let unmatched = 0;
+
+  for (const query of queries) {
+    const existing = await db
+      .select({ id: watchlistEntries.id })
+      .from(watchlistEntries)
+      .where(and(eq(watchlistEntries.userId, userId), eq(watchlistEntries.sourceQuery, query)))
+      .limit(1);
+    if (existing.length > 0) {
+      skipped += 1;
+      continue;
+    }
+
+    const match = await findTmdbMatch(query);
+    if (!match) {
+      unmatched += 1;
+      continue;
+    }
+
+    await db.insert(watchlistEntries).values({
+      userId,
+      title: match.title,
+      mediaType: match.mediaType,
+      watchStatus: "Want to Watch",
+      monthYear: new Date().toISOString().slice(0, 7),
+      tmdbId: match.tmdbId,
+      posterUrl: match.posterUrl,
+      releaseYear: match.releaseYear,
+      sourceQuery: query,
+      sourceKind: "Brave search import",
+      moctaleUrl: "https://www.moctale.in/",
+    });
+    imported += 1;
+  }
+
+  return { imported, skipped, unmatched, received: queries.length };
+}
+
+export async function enrichWatchlistEntries(userId: number) {
+  const db = getDb();
+  if (!db) throw new Error("Database is not available");
+
+  await ensureHistoricalEntries(userId);
+  const entries = await db
+    .select({ id: watchlistEntries.id, title: watchlistEntries.title, tmdbId: watchlistEntries.tmdbId })
+    .from(watchlistEntries)
+    .where(and(eq(watchlistEntries.userId, userId), isNull(watchlistEntries.tmdbId)))
+    .limit(50);
+
+  let enriched = 0;
+  let unmatched = 0;
+  for (const entry of entries) {
+    const match = await findTmdbMatch(entry.title);
+    if (!match) {
+      unmatched += 1;
+      continue;
+    }
+    await db
+      .update(watchlistEntries)
+      .set({
+        tmdbId: match.tmdbId,
+        posterUrl: match.posterUrl,
+        releaseYear: match.releaseYear,
+        mediaType: match.mediaType,
+        sourceKind: "TMDb enrichment",
+      })
+      .where(and(eq(watchlistEntries.id, entry.id), eq(watchlistEntries.userId, userId)));
+    enriched += 1;
+  }
+  return { examined: entries.length, enriched, unmatched };
 }
 
 export { HISTORICAL_ENTRIES };

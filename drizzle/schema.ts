@@ -1,4 +1,4 @@
-import { index, int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { decimal, index, int, mysqlEnum, mysqlTable, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 
 export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
@@ -26,12 +26,40 @@ export const watchlistEntries = mysqlTable(
       .default("Want to Watch"),
     monthYear: varchar("monthYear", { length: 7 }),
     notes: text("notes"),
+    tmdbId: int("tmdbId"),
+    posterUrl: text("posterUrl"),
+    imdbRating: decimal("imdbRating", { precision: 3, scale: 1 }),
+    releaseYear: varchar("releaseYear", { length: 4 }),
+    sourceQuery: varchar("sourceQuery", { length: 255 }),
+    sourceKind: varchar("sourceKind", { length: 64 }),
+    moctaleUrl: varchar("moctaleUrl", { length: 512 }),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   },
   table => [
     index("watchlist_user_month_idx").on(table.userId, table.monthYear),
     index("watchlist_user_title_idx").on(table.userId, table.title),
+    index("watchlist_user_source_query_idx").on(table.userId, table.sourceQuery),
+  ]
+);
+
+export const watchlistExtensionTokens = mysqlTable(
+  "watchlistExtensionTokens",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    tokenHash: varchar("tokenHash", { length: 64 }).notNull(),
+    tokenHint: varchar("tokenHint", { length: 10 }).notNull(),
+    browser: varchar("browser", { length: 32 }).notNull().default("Brave"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    lastUsedAt: timestamp("lastUsedAt"),
+    revokedAt: timestamp("revokedAt"),
+  },
+  table => [
+    uniqueIndex("watchlist_extension_token_hash_unique").on(table.tokenHash),
+    index("watchlist_extension_user_idx").on(table.userId),
   ]
 );
 

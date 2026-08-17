@@ -13,3 +13,24 @@
 - [x] Restore the global utility styles and verify the dashboard renders with the intended premium layout.
 - [x] Add Vitest coverage for validation, user isolation, CRUD behavior, and historical seeding.
 - [x] Verify the finished dashboard on desktop and mobile, review the checklist, and create the delivery checkpoint.
+- [ ] Confirm the permitted Google activity source and consent flow for importing entertainment-related searches.
+- [ ] Add a user-controlled automated refresh mechanism that processes only the user's permitted activity data.
+- [ ] Enrich matched titles with verified poster artwork, IMDb rating where licensed/available, and real editorial or audience review-source links without fabricating reviews.
+- [ ] Extend title records with television, drama, and short-film categorization while preserving the existing exact type labels where required.
+- [ ] Build a poster-deck gallery, checkboxes, and month/year/category filters for enriched entries.
+- [ ] Preserve per-user privacy for imported searches and enriched records through authenticated access controls.
+- [ ] Create or connect the requested private GitHub repository and synchronize the project source without publishing sensitive user data.
+- [ ] Test automated imports, enrichment fallbacks, privacy boundaries, and repository synchronization before the next delivery checkpoint.
+- [ ] Replace Google-account activity access with a local browser-extension import flow that never requires a Google sign-in.
+- [ ] Limit the browser extension to explicit history access, local entertainment-query detection, and user-controlled sync; exclude Gmail, Drive, passwords, cookies, and unrelated browser data.
+- [ ] Add a visible consent screen, import preview, and local clear/revoke controls before any history-derived item is sent to the dashboard.
+- [ ] Confirm the target browser and extension installation method before implementation.
+- [ ] Target Brave Browser with a Chromium Manifest V3 extension that supports live capture and one-time, user-approved local-history backfill.
+- [ ] Verify Mocktail.in's permitted data-access method and represent it only through source-provided review content, scores, or links.
+- [ ] Verify Moctale.in's permitted data-access method and represent it only through source-provided critic content, scores, or links.
+- [ ] Use broader automatic matching with clear consent: send only likely entertainment search terms to the approved metadata source for title recognition and enrichment.
+- [x] Add revocable, hashed private connection tokens and a protected Brave extension import endpoint.
+- [x] Create the Brave Manifest V3 extension with user-controlled live capture and one-time local-history backfill controls.
+- [x] Add a dashboard connection flow that generates a private extension token and explains the local-history permission boundary.
+- [x] Add unit coverage for private extension-token ownership and TMDb title-match normalization.
+- [x] Add a user-triggered enrichment action that retrieves poster artwork and title metadata for the existing private watchlist.

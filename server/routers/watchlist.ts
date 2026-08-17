@@ -1,9 +1,12 @@
 import { z } from "zod";
 import {
+  createExtensionToken,
   createWatchlistEntry,
   deleteWatchlistEntry,
+  enrichWatchlistEntries,
   listWatchlistEntries,
   MEDIA_TYPES,
+  revokeExtensionToken,
   updateWatchlistEntry,
   WATCH_STATUSES,
 } from "../db";
@@ -57,6 +60,14 @@ export const watchlistRouter = router({
   delete: protectedProcedure
     .input(z.object({ id: z.number().int().positive() }))
     .mutation(({ ctx, input }) => deleteWatchlistEntry(ctx.user.id, input.id)),
+
+  createExtensionToken: protectedProcedure.mutation(({ ctx }) => createExtensionToken(ctx.user.id)),
+
+  revokeExtensionToken: protectedProcedure
+    .input(z.object({ tokenHint: z.string().min(8).max(10) }))
+    .mutation(({ ctx, input }) => revokeExtensionToken(ctx.user.id, input.tokenHint)),
+
+  enrich: protectedProcedure.mutation(({ ctx }) => enrichWatchlistEntries(ctx.user.id)),
 });
 
 export const watchlistValidation = { createInput, updateInput };
