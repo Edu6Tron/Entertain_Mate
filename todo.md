@@ -38,3 +38,5 @@
 - [x] Implement a local pre-send entertainment filter so unrelated Google searches are never sent to the dashboard import endpoint.
 - [x] Add unit coverage for the local entertainment-query filter and its blocked-query behavior.
 - [x] Add explicit month/year filtering and test enriched category behavior, including Short Film classification.
+- [ ] Verify the private Entertain_Mate GitHub repository contains the latest committed source and publish any outstanding local changes.
+- [ ] Document that real IMDb-linked ratings remain intentionally disabled until the user supplies a validated OMDb API key.

@@ -19,3 +19,7 @@ You can disable live capture in the extension at any time. A future dashboard co
 ## Matching and review sources
 
 TMDb is used server-side to identify titles and obtain poster metadata. Moctale is represented only by a source link until it provides a public, permitted API or direct integration agreement. No Moctale review text, user reviews, scores, or artwork are copied into Entertain_Mate. IMDb-linked ratings remain disabled until an OMDb API key is supplied and validated.
+
+## IMDb-rating status
+
+The dashboard intentionally leaves the IMDb-linked rating field blank until a valid OMDb key is configured and passes its server-side check. This avoids showing estimates, placeholders, copied ratings, or fabricated review data.
