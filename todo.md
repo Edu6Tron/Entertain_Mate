@@ -40,3 +40,7 @@
 - [x] Add explicit month/year filtering and test enriched category behavior, including Short Film classification.
 - [x] Verify the private Entertain_Mate GitHub repository contains the latest committed source and publish any outstanding local changes.
 - [x] Document that real IMDb-linked ratings remain intentionally disabled until the user supplies a validated OMDb API key.
+- [x] Define a standalone HTML privacy boundary that excludes OAuth sessions, imported search history, database records, and server credentials.
+- [x] Build a responsive single-file Entertain_Mate HTML companion with multiple theme modes, local watchlist persistence, title filters, status controls, and add/edit/delete interactions.
+- [x] Verify the standalone HTML page opens directly, retains its selected theme and local entries, and remains usable at mobile and desktop widths.
+- [ ] Publish the standalone HTML companion source to the private Entertain_Mate GitHub repository and provide a direct page link.
