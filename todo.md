@@ -44,3 +44,4 @@
 - [x] Build a responsive single-file Entertain_Mate HTML companion with multiple theme modes, local watchlist persistence, title filters, status controls, and add/edit/delete interactions.
 - [x] Verify the standalone HTML page opens directly, retains its selected theme and local entries, and remains usable at mobile and desktop widths.
 - [ ] Publish the standalone HTML companion source to the private Entertain_Mate GitHub repository and provide a direct page link.
+- [ ] Enable public GitHub Pages only for the data-free standalone HTML companion after the user's explicit confirmation.
