@@ -33,4 +33,5 @@
 - [x] Create the Brave Manifest V3 extension with user-controlled live capture and one-time local-history backfill controls.
 - [x] Add a dashboard connection flow that generates a private extension token and explains the local-history permission boundary.
 - [x] Add unit coverage for private extension-token ownership and TMDb title-match normalization.
+- [x] Add an automated extension-manifest test that guards the local-history-only permission boundary.
 - [x] Add a user-triggered enrichment action that retrieves poster artwork and title metadata for the existing private watchlist.
