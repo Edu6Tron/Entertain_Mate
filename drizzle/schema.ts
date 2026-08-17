@@ -1,17 +1,7 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { index, int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
 
-/**
- * Core user table backing auth flow.
- * Extend this file with additional tables as your product grows.
- * Columns use camelCase to match both database fields and generated types.
- */
 export const users = mysqlTable("users", {
-  /**
-   * Surrogate primary key. Auto-incremented numeric value managed by the database.
-   * Use this for relations between tables.
-   */
   id: int("id").autoincrement().primaryKey(),
-  /** Manus OAuth identifier (openId) returned from the OAuth callback. Unique per user. */
   openId: varchar("openId", { length: 64 }).notNull().unique(),
   name: text("name"),
   email: varchar("email", { length: 320 }),
@@ -22,7 +12,38 @@ export const users = mysqlTable("users", {
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
 });
 
+export const watchlistEntries = mysqlTable(
+  "watchlistEntries",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    title: varchar("title", { length: 255 }).notNull(),
+    mediaType: mysqlEnum("mediaType", ["Movie", "Web Series", "Short Film"]).notNull(),
+    watchStatus: mysqlEnum("watchStatus", ["Want to Watch", "Watching", "Watched"])
+      .notNull()
+      .default("Want to Watch"),
+    monthYear: varchar("monthYear", { length: 7 }),
+    notes: text("notes"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => [
+    index("watchlist_user_month_idx").on(table.userId, table.monthYear),
+    index("watchlist_user_title_idx").on(table.userId, table.title),
+  ]
+);
+
+export const watchlistSeedStates = mysqlTable("watchlistSeedStates", {
+  userId: int("userId")
+    .notNull()
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  seededAt: timestamp("seededAt").defaultNow().notNull(),
+});
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
-
-// TODO: Add your tables here
+export type WatchlistEntry = typeof watchlistEntries.$inferSelect;
+export type InsertWatchlistEntry = typeof watchlistEntries.$inferInsert;
