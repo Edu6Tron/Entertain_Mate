@@ -1,3 +1,5 @@
+import { isLikelyEntertainmentQuery } from "./query-filter.js";
+
 const SETTINGS_KEY = "settings";
 
 function queryFromGoogleUrl(rawUrl) {
@@ -15,11 +17,13 @@ function queryFromGoogleUrl(rawUrl) {
 async function syncQueries(queries) {
   const { [SETTINGS_KEY]: settings } = await chrome.storage.local.get(SETTINGS_KEY);
   if (!settings?.dashboardUrl || !settings?.token || !settings?.liveCapture) return;
+  const eligibleQueries = queries.filter(isLikelyEntertainmentQuery);
+  if (eligibleQueries.length === 0) return { received: 0, blockedLocally: queries.length };
   const url = new URL("/api/extension/import", settings.dashboardUrl).toString();
   const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-Entertain-Mate-Token": settings.token },
-    body: JSON.stringify({ queries }),
+    body: JSON.stringify({ queries: eligibleQueries }),
   });
   if (!response.ok) throw new Error("Entertain_Mate could not accept this import");
   const result = await response.json();
